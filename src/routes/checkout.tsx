@@ -128,20 +128,6 @@ function CheckoutPage() {
       }
       setErrors(fieldErrors);
       return;
-    }
-
-  const onSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const parsed = checkoutSchema.safeParse(values);
-    if (!parsed.success) {
-      const fieldErrors: Errors = {};
-      for (const issue of parsed.error.issues) {
-        const key = issue.path[0] as keyof CheckoutInput | undefined;
-        if (key && !fieldErrors[key]) fieldErrors[key] = issue.message;
-      }
-      setErrors(fieldErrors);
-      return;
-    }
     setErrors({});
     // Server-side validation MUST re-run checkoutSchema.parse() before creating
     // any Razorpay order — never trust client validation alone.
