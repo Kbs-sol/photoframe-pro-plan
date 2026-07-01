@@ -38,7 +38,7 @@ function ProductPage() {
   const { product } = Route.useLoaderData();
   const [size, setSize] = useState<(typeof sizes)[number]["id"]>(sizes[1].id);
   const [frameType, setFrameType] = useState<(typeof frameTypes)[number]["id"]>(frameTypes[0].id);
-  const [finish, setFinish] = useState(frameFinishes[0].id);
+  
   const [qty, setQty] = useState(1);
 
   const sizeObj = sizes.find((s) => s.id === size)!;
