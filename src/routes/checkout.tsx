@@ -51,10 +51,84 @@ function CheckoutPage() {
   const [values, setValues] = useState<CheckoutInput>(empty);
   const [errors, setErrors] = useState<Errors>({});
   const [submitted, setSubmitted] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<"cod" | "prepaid">("prepaid");
+  const [pinStatus, setPinStatus] = useState<
+    | { state: "idle" }
+    | { state: "checking" }
+    | { state: "invalid"; message: string }
+    | { state: "valid"; district: string; state_: string; express: boolean }
+  >({ state: "idle" });
+  const [quote, setQuote] = useState<ShippingQuote | null>(null);
+  const [quoteLoading, setQuoteLoading] = useState(false);
 
   const update = <K extends keyof CheckoutInput>(k: K, v: string) => {
     setValues((s) => ({ ...s, [k]: v }));
   };
+
+  async function onPincodeBlur() {
+    const pin = values.pincode.trim();
+    if (!/^[1-9]\d{5}$/.test(pin)) {
+      setPinStatus({ state: "invalid", message: "Enter a valid 6-digit PIN" });
+      setQuote(null);
+      return;
+    }
+    setPinStatus({ state: "checking" });
+    setQuoteLoading(true);
+    try {
+      const [pinRes, quoteRes] = await Promise.all([
+        validatePincodeFn({ data: { pincode: pin } }),
+        estimateShippingFn({
+          data: { pincode: pin, paymentMethod, items: DEMO_CART },
+        }),
+      ]);
+      if (!pinRes.valid) {
+        setPinStatus({ state: "invalid", message: "PIN not serviceable" });
+        setQuote(null);
+        return;
+      }
+      setPinStatus({
+        state: "valid",
+        district: pinRes.district ?? "",
+        state_: pinRes.state ?? "",
+        express: pinRes.express,
+      });
+      // Auto-fill city/state if blank
+      setValues((s) => ({
+        ...s,
+        city: s.city || pinRes.district || "",
+        state: s.state || pinRes.state || "",
+      }));
+      if (quoteRes.ok) {
+        setQuote({
+          shipping: quoteRes.shipping,
+          total: quoteRes.total,
+          cartTotal: quoteRes.cartTotal,
+          freeShipping: quoteRes.freeShipping,
+          estimatedDays: quoteRes.estimatedDays,
+          courier: quoteRes.courier,
+          codAvailable: quoteRes.codAvailable,
+          shiprocketAvailable: quoteRes.shiprocketAvailable,
+        });
+      }
+    } catch {
+      setPinStatus({ state: "invalid", message: "Could not verify PIN" });
+    } finally {
+      setQuoteLoading(false);
+    }
+  }
+
+  const onSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const parsed = checkoutSchema.safeParse(values);
+    if (!parsed.success) {
+      const fieldErrors: Errors = {};
+      for (const issue of parsed.error.issues) {
+        const key = issue.path[0] as keyof CheckoutInput | undefined;
+        if (key && !fieldErrors[key]) fieldErrors[key] = issue.message;
+      }
+      setErrors(fieldErrors);
+      return;
+    }
 
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
