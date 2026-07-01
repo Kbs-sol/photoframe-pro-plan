@@ -36,12 +36,15 @@ export const Route = createFileRoute("/product/$slug")({
 
 function ProductPage() {
   const { product } = Route.useLoaderData();
-  const [size, setSize] = useState(sizes[1].id);
-  const [frame, setFrame] = useState(frames[0].id);
+  const [size, setSize] = useState<(typeof sizes)[number]["id"]>(sizes[1].id);
+  const [frameType, setFrameType] = useState<(typeof frameTypes)[number]["id"]>(frameTypes[0].id);
+  const [finish, setFinish] = useState(frameFinishes[0].id);
   const [qty, setQty] = useState(1);
 
   const sizeObj = sizes.find((s) => s.id === size)!;
-  const price = (product.price + sizeObj.delta) * qty;
+  const frameObj = frameTypes.find((f) => f.id === frameType)!;
+  const unitPrice = product.price + sizeObj.delta + frameObj.priceDelta;
+  const price = unitPrice * qty;
 
   const related = products.filter((p) => p.slug !== product.slug && p.category === product.category).slice(0, 3);
 
