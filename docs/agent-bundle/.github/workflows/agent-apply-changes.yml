@@ -48,6 +48,27 @@ jobs:
       - name: Create branch
         run: git checkout -b "${{ github.event.inputs.branch_name }}"
 
+      - name: Validate change paths
+        run: |
+          # Allowlist: agent memory, blog content, and blog public assets.
+          # Reject any absolute paths, parent traversals, or paths outside the allowlist.
+          repo_root=$(pwd)
+          jq -r '.[].path' /tmp/changes.json | while read -r p; do
+            if [ -z "$p" ]; then echo "empty path"; exit 1; fi
+            case "$p" in
+              /*|*..*|*$'\n'*) echo "Unsafe path rejected: $p" >&2; exit 1 ;;
+            esac
+            if ! printf '%s' "$p" | grep -Eq '^(\.agent/|src/content/blog/|public/blog/)'; then
+              echo "Path outside allowlist rejected: $p" >&2
+              exit 1
+            fi
+            resolved=$(realpath -m "$repo_root/$p")
+            case "$resolved" in
+              "$repo_root"/.agent/*|"$repo_root"/src/content/blog/*|"$repo_root"/public/blog/*) ;;
+              *) echo "Resolved path escapes allowlist: $resolved" >&2; exit 1 ;;
+            esac
+          done
+
       - name: Apply changes
         run: |
           jq -c '.[]' /tmp/changes.json | while read -r item; do
