@@ -65,20 +65,19 @@ function CheckoutPage() {
     setValues((s) => ({ ...s, [k]: v }));
   };
 
-  async function onPincodeBlur() {
-    const pin = values.pincode.trim();
+  async function fetchQuote(pin: string, method: "cod" | "prepaid") {
     if (!/^[1-9]\d{5}$/.test(pin)) {
       setPinStatus({ state: "invalid", message: "Enter a valid 6-digit PIN" });
       setQuote(null);
       return;
     }
-    setPinStatus({ state: "checking" });
+    setPinStatus((s) => (s.state === "valid" ? s : { state: "checking" }));
     setQuoteLoading(true);
     try {
       const [pinRes, quoteRes] = await Promise.all([
         validatePincodeFn({ data: { pincode: pin } }),
         estimateShippingFn({
-          data: { pincode: pin, paymentMethod, items: DEMO_CART },
+          data: { pincode: pin, paymentMethod: method, items: DEMO_CART },
         }),
       ]);
       if (!pinRes.valid) {
@@ -92,7 +91,6 @@ function CheckoutPage() {
         state_: pinRes.state ?? "",
         express: pinRes.express,
       });
-      // Auto-fill city/state if blank
       setValues((s) => ({
         ...s,
         city: s.city || pinRes.district || "",
@@ -116,6 +114,16 @@ function CheckoutPage() {
       setQuoteLoading(false);
     }
   }
+
+  const onPincodeBlur = () => fetchQuote(values.pincode.trim(), paymentMethod);
+
+  // Re-quote whenever the payment method changes (and we have a valid PIN).
+  useEffect(() => {
+    if (/^[1-9]\d{5}$/.test(values.pincode)) {
+      void fetchQuote(values.pincode, paymentMethod);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [paymentMethod]);
 
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
