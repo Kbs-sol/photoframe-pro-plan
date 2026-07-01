@@ -1,6 +1,26 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { checkoutSchema, type CheckoutInput } from "@/lib/checkout-schema";
+import {
+  validatePincodeFn,
+  estimateShippingFn,
+} from "@/lib/shipping.functions";
+
+type ShippingQuote = {
+  shipping: number;
+  total: number;
+  cartTotal: number;
+  freeShipping: boolean;
+  estimatedDays: string;
+  courier: string;
+  codAvailable: boolean;
+  shiprocketAvailable: boolean;
+};
+
+// Demo cart — replace with real cart state when wired up.
+const DEMO_CART: Array<{ size: "XS" | "S" | "M" | "L"; price: number; quantity: number }> = [
+  { size: "M", price: 1399, quantity: 1 },
+];
 
 export const Route = createFileRoute("/checkout")({
   head: () => ({
@@ -31,10 +51,71 @@ function CheckoutPage() {
   const [values, setValues] = useState<CheckoutInput>(empty);
   const [errors, setErrors] = useState<Errors>({});
   const [submitted, setSubmitted] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<"cod" | "prepaid">("prepaid");
+  const [pinStatus, setPinStatus] = useState<
+    | { state: "idle" }
+    | { state: "checking" }
+    | { state: "invalid"; message: string }
+    | { state: "valid"; district: string; state_: string; express: boolean }
+  >({ state: "idle" });
+  const [quote, setQuote] = useState<ShippingQuote | null>(null);
+  const [quoteLoading, setQuoteLoading] = useState(false);
 
   const update = <K extends keyof CheckoutInput>(k: K, v: string) => {
     setValues((s) => ({ ...s, [k]: v }));
   };
+
+  async function onPincodeBlur() {
+    const pin = values.pincode.trim();
+    if (!/^[1-9]\d{5}$/.test(pin)) {
+      setPinStatus({ state: "invalid", message: "Enter a valid 6-digit PIN" });
+      setQuote(null);
+      return;
+    }
+    setPinStatus({ state: "checking" });
+    setQuoteLoading(true);
+    try {
+      const [pinRes, quoteRes] = await Promise.all([
+        validatePincodeFn({ data: { pincode: pin } }),
+        estimateShippingFn({
+          data: { pincode: pin, paymentMethod, items: DEMO_CART },
+        }),
+      ]);
+      if (!pinRes.valid) {
+        setPinStatus({ state: "invalid", message: "PIN not serviceable" });
+        setQuote(null);
+        return;
+      }
+      setPinStatus({
+        state: "valid",
+        district: pinRes.district ?? "",
+        state_: pinRes.state ?? "",
+        express: pinRes.express,
+      });
+      // Auto-fill city/state if blank
+      setValues((s) => ({
+        ...s,
+        city: s.city || pinRes.district || "",
+        state: s.state || pinRes.state || "",
+      }));
+      if (quoteRes.ok) {
+        setQuote({
+          shipping: quoteRes.shipping,
+          total: quoteRes.total,
+          cartTotal: quoteRes.cartTotal,
+          freeShipping: quoteRes.freeShipping,
+          estimatedDays: quoteRes.estimatedDays,
+          courier: quoteRes.courier,
+          codAvailable: quoteRes.codAvailable,
+          shiprocketAvailable: quoteRes.shiprocketAvailable,
+        });
+      }
+    } catch {
+      setPinStatus({ state: "invalid", message: "Could not verify PIN" });
+    } finally {
+      setQuoteLoading(false);
+    }
+  }
 
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -175,9 +256,78 @@ function CheckoutPage() {
               maxLength={6}
               value={values.pincode}
               onChange={(e) => update("pincode", e.target.value.replace(/\D/g, ""))}
+              onBlur={onPincodeBlur}
               className={inputCls(!!errors.pincode)}
             />
+            {pinStatus.state === "checking" && (
+              <span className="mt-1 block text-xs text-muted-foreground">Checking deliverability…</span>
+            )}
+            {pinStatus.state === "invalid" && (
+              <span className="mt-1 block text-xs text-destructive">{pinStatus.message}</span>
+            )}
+            {pinStatus.state === "valid" && (
+              <span className="mt-1 block text-xs text-emerald-600">
+                Delivers to {pinStatus.district}, {pinStatus.state_}
+                {pinStatus.express ? " · Express (1–2 days)" : ""}
+              </span>
+            )}
           </Field>
+
+          <Field label="Payment method" className="sm:col-span-2">
+            <div className="flex gap-3">
+              {(["prepaid", "cod"] as const).map((m) => (
+                <button
+                  key={m}
+                  type="button"
+                  onClick={() => {
+                    setPaymentMethod(m);
+                    if (pinStatus.state === "valid") void onPincodeBlur();
+                  }}
+                  className={`flex-1 rounded-md border px-3 py-2 text-sm ${
+                    paymentMethod === m
+                      ? "border-primary bg-primary/5 text-primary"
+                      : "border-border text-muted-foreground"
+                  }`}
+                >
+                  {m === "prepaid" ? "Prepaid (UPI/Card)" : "Cash on Delivery"}
+                </button>
+              ))}
+            </div>
+          </Field>
+
+          {quote && (
+            <div className="sm:col-span-2 rounded-lg border border-border bg-card p-4 text-sm">
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Cart total</span>
+                <span>₹{quote.cartTotal.toLocaleString("en-IN")}</span>
+              </div>
+              <div className="mt-1 flex items-center justify-between">
+                <span className="text-muted-foreground">
+                  Shipping {quote.shiprocketAvailable ? `· ${quote.courier}` : "· Standard"}
+                </span>
+                <span>
+                  {quote.freeShipping ? (
+                    <span className="text-emerald-600">FREE</span>
+                  ) : (
+                    `₹${quote.shipping}`
+                  )}
+                </span>
+              </div>
+              <div className="mt-2 flex items-center justify-between border-t border-border pt-2 font-medium">
+                <span>Total</span>
+                <span>₹{quote.total.toLocaleString("en-IN")}</span>
+              </div>
+              <p className="mt-2 text-xs text-muted-foreground">
+                Estimated delivery in {quote.estimatedDays} days.
+                {paymentMethod === "cod" && !quote.codAvailable && (
+                  <span className="ml-1 text-destructive">
+                    COD not available for this PIN — please choose prepaid.
+                  </span>
+                )}
+                {quoteLoading && <span className="ml-1">Refreshing…</span>}
+              </p>
+            </div>
+          )}
 
           <Field label="Order notes (optional)" error={errors.notes} className="sm:col-span-2">
             <textarea
