@@ -1,0 +1,65 @@
+name: agent-publish-blog
+
+on:
+  workflow_dispatch:
+    inputs:
+      slug:
+        description: "URL slug (kebab-case)"
+        required: true
+      title:
+        description: "Post title"
+        required: true
+      mdx_b64:
+        description: "Base64-encoded MDX body (with frontmatter)"
+        required: true
+      hero_image_url:
+        description: "Optional hero image URL (will be referenced, not uploaded)"
+        required: false
+        default: ""
+      auto_merge:
+        description: "Auto-merge (true/false)"
+        required: false
+        default: "true"
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure git
+        run: |
+          git config user.name  "chitraframe-agent[bot]"
+          git config user.email "chitraframe-agent@users.noreply.github.com"
+
+      - name: Write file
+        env:
+          SLUG: ${{ github.event.inputs.slug }}
+          MDX_B64: ${{ github.event.inputs.mdx_b64 }}
+        run: |
+          mkdir -p src/content/blog
+          echo "$MDX_B64" | base64 -d > "src/content/blog/${SLUG}.mdx"
+
+      - name: Branch + PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SLUG: ${{ github.event.inputs.slug }}
+          TITLE: ${{ github.event.inputs.title }}
+        run: |
+          branch="agent/blog-${SLUG}-$(date +%s)"
+          git checkout -b "$branch"
+          git add "src/content/blog/${SLUG}.mdx"
+          git commit -m "blog: ${TITLE}"
+          git push -u origin "$branch"
+          pr_url=$(gh pr create \
+            --title "blog: ${TITLE}" \
+            --body  "Auto-drafted blog post by ChitraFrame agent.\n\nSlug: ${SLUG}\nHero: ${{ github.event.inputs.hero_image_url }}\n\nReview and merge, or reply with @agent to request revisions." \
+            --base  main --head "$branch")
+          if [ "${{ github.event.inputs.auto_merge }}" = "true" ]; then
+            gh pr merge "$pr_url" --squash --auto || true
+          fi

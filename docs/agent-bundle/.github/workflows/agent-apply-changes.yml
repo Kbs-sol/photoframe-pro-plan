@@ -1,0 +1,89 @@
+name: agent-apply-changes
+
+on:
+  workflow_dispatch:
+    inputs:
+      changes_b64:
+        description: "Base64-encoded JSON: [{path, action: write|patch|delete, content}]"
+        required: true
+      branch_name:
+        description: "New branch name, e.g. agent/2026-07-01-seo-refresh"
+        required: true
+      pr_title:
+        description: "PR title"
+        required: true
+      pr_body:
+        description: "PR body (markdown, include the Agent Decision block)"
+        required: true
+      auto_merge:
+        description: "Auto-merge if only .agent/ or blog files touched (true/false)"
+        required: false
+        default: "false"
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Decode changes
+        env:
+          CHANGES_B64: ${{ github.event.inputs.changes_b64 }}
+        run: |
+          echo "$CHANGES_B64" | base64 -d > /tmp/changes.json
+          echo "Change count: $(jq 'length' /tmp/changes.json)"
+
+      - name: Configure git
+        run: |
+          git config user.name  "chitraframe-agent[bot]"
+          git config user.email "chitraframe-agent@users.noreply.github.com"
+
+      - name: Create branch
+        run: git checkout -b "${{ github.event.inputs.branch_name }}"
+
+      - name: Apply changes
+        run: |
+          jq -c '.[]' /tmp/changes.json | while read -r item; do
+            path=$(echo "$item" | jq -r '.path')
+            action=$(echo "$item" | jq -r '.action')
+            case "$action" in
+              write|patch)
+                mkdir -p "$(dirname "$path")"
+                echo "$item" | jq -r '.content' > "$path"
+                git add "$path"
+                ;;
+              delete)
+                git rm -f "$path" || true
+                ;;
+            esac
+          done
+          git commit -m "${{ github.event.inputs.pr_title }}" || echo "no changes"
+
+      - name: Push and PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git push -u origin "${{ github.event.inputs.branch_name }}"
+          pr_url=$(gh pr create \
+            --title "${{ github.event.inputs.pr_title }}" \
+            --body  "${{ github.event.inputs.pr_body }}" \
+            --base  main \
+            --head  "${{ github.event.inputs.branch_name }}")
+          echo "PR: $pr_url"
+
+          # Auto-merge only if safe paths and flag is true
+          if [ "${{ github.event.inputs.auto_merge }}" = "true" ]; then
+            unsafe=$(jq -r '.[].path' /tmp/changes.json | grep -Ev '^(\.agent/|src/content/blog/|public/blog/)' || true)
+            if [ -z "$unsafe" ]; then
+              gh pr merge "$pr_url" --squash --auto || true
+            else
+              echo "auto_merge requested but unsafe paths present, skipping"
+            fi
+          fi

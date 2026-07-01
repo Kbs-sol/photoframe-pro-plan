@@ -1,0 +1,49 @@
+name: agent-write-next-brief
+
+on:
+  workflow_dispatch:
+    inputs:
+      next_run_b64:
+        description: "Base64-encoded new .agent/next-run.md content"
+        required: true
+      history_line:
+        description: "One-line entry to append to .agent/history.md (with date prefix)"
+        required: false
+        default: ""
+      decisions_jsonl_b64:
+        description: "Optional base64 JSONL rows to append to .agent/decisions.jsonl"
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+jobs:
+  write:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure git
+        run: |
+          git config user.name  "chitraframe-agent[bot]"
+          git config user.email "chitraframe-agent@users.noreply.github.com"
+
+      - name: Update memory files
+        env:
+          NEXT_RUN_B64: ${{ github.event.inputs.next_run_b64 }}
+          HISTORY_LINE: ${{ github.event.inputs.history_line }}
+          DECISIONS_B64: ${{ github.event.inputs.decisions_jsonl_b64 }}
+        run: |
+          mkdir -p .agent
+          echo "$NEXT_RUN_B64" | base64 -d > .agent/next-run.md
+          if [ -n "$HISTORY_LINE" ]; then
+            echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) | $HISTORY_LINE" >> .agent/history.md
+          fi
+          if [ -n "$DECISIONS_B64" ]; then
+            echo "$DECISIONS_B64" | base64 -d >> .agent/decisions.jsonl
+          fi
+          git add .agent/next-run.md .agent/history.md .agent/decisions.jsonl 2>/dev/null || true
+          git commit -m "agent: update next-run brief + memory" || echo "no changes"
+          git push origin main
