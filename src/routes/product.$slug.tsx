@@ -1,6 +1,6 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useState } from "react";
-import { getProduct, products, sizes, frameTypes, frameFinishes } from "@/lib/products";
+import { getProduct, products, sizes, frameTypes } from "@/lib/products";
 
 export const Route = createFileRoute("/product/$slug")({
   loader: ({ params }) => {
@@ -38,7 +38,7 @@ function ProductPage() {
   const { product } = Route.useLoaderData();
   const [size, setSize] = useState<(typeof sizes)[number]["id"]>(sizes[1].id);
   const [frameType, setFrameType] = useState<(typeof frameTypes)[number]["id"]>(frameTypes[0].id);
-  const [finish, setFinish] = useState(frameFinishes[0].id);
+  
   const [qty, setQty] = useState(1);
 
   const sizeObj = sizes.find((s) => s.id === size)!;
@@ -145,23 +145,6 @@ function ProductPage() {
               </div>
             </div>
 
-            <div className="mt-6">
-              <div className="mb-2 text-xs uppercase tracking-widest text-muted-foreground">Frame finish</div>
-              <div className="flex flex-wrap gap-2">
-                {frameFinishes.map((f) => (
-                  <button
-                    key={f.id}
-                    onClick={() => setFinish(f.id)}
-                    className={`flex items-center gap-2 rounded-full border px-3 py-2 text-sm transition ${
-                      finish === f.id ? "border-primary" : "border-border hover:border-primary/40"
-                    }`}
-                  >
-                    <span className="h-4 w-4 rounded-full border border-border" style={{ background: f.swatch }} />
-                    {f.label}
-                  </button>
-                ))}
-              </div>
-            </div>
 
 
             <div className="mt-6 flex items-center gap-4">
