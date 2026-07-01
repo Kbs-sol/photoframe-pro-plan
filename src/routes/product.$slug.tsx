@@ -145,23 +145,6 @@ function ProductPage() {
               </div>
             </div>
 
-            <div className="mt-6">
-              <div className="mb-2 text-xs uppercase tracking-widest text-muted-foreground">Frame finish</div>
-              <div className="flex flex-wrap gap-2">
-                {frameFinishes.map((f) => (
-                  <button
-                    key={f.id}
-                    onClick={() => setFinish(f.id)}
-                    className={`flex items-center gap-2 rounded-full border px-3 py-2 text-sm transition ${
-                      finish === f.id ? "border-primary" : "border-border hover:border-primary/40"
-                    }`}
-                  >
-                    <span className="h-4 w-4 rounded-full border border-border" style={{ background: f.swatch }} />
-                    {f.label}
-                  </button>
-                ))}
-              </div>
-            </div>
 
 
             <div className="mt-6 flex items-center gap-4">
