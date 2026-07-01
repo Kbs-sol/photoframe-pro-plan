@@ -287,10 +287,7 @@ function CheckoutPage() {
                 <button
                   key={m}
                   type="button"
-                  onClick={() => {
-                    setPaymentMethod(m);
-                    if (pinStatus.state === "valid") void onPincodeBlur();
-                  }}
+                  onClick={() => setPaymentMethod(m)}
                   className={`flex-1 rounded-md border px-3 py-2 text-sm ${
                     paymentMethod === m
                       ? "border-primary bg-primary/5 text-primary"
