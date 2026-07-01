@@ -256,9 +256,78 @@ function CheckoutPage() {
               maxLength={6}
               value={values.pincode}
               onChange={(e) => update("pincode", e.target.value.replace(/\D/g, ""))}
+              onBlur={onPincodeBlur}
               className={inputCls(!!errors.pincode)}
             />
+            {pinStatus.state === "checking" && (
+              <span className="mt-1 block text-xs text-muted-foreground">Checking deliverability…</span>
+            )}
+            {pinStatus.state === "invalid" && (
+              <span className="mt-1 block text-xs text-destructive">{pinStatus.message}</span>
+            )}
+            {pinStatus.state === "valid" && (
+              <span className="mt-1 block text-xs text-emerald-600">
+                Delivers to {pinStatus.district}, {pinStatus.state_}
+                {pinStatus.express ? " · Express (1–2 days)" : ""}
+              </span>
+            )}
           </Field>
+
+          <Field label="Payment method" className="sm:col-span-2">
+            <div className="flex gap-3">
+              {(["prepaid", "cod"] as const).map((m) => (
+                <button
+                  key={m}
+                  type="button"
+                  onClick={() => {
+                    setPaymentMethod(m);
+                    if (pinStatus.state === "valid") void onPincodeBlur();
+                  }}
+                  className={`flex-1 rounded-md border px-3 py-2 text-sm ${
+                    paymentMethod === m
+                      ? "border-primary bg-primary/5 text-primary"
+                      : "border-border text-muted-foreground"
+                  }`}
+                >
+                  {m === "prepaid" ? "Prepaid (UPI/Card)" : "Cash on Delivery"}
+                </button>
+              ))}
+            </div>
+          </Field>
+
+          {quote && (
+            <div className="sm:col-span-2 rounded-lg border border-border bg-card p-4 text-sm">
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Cart total</span>
+                <span>₹{quote.cartTotal.toLocaleString("en-IN")}</span>
+              </div>
+              <div className="mt-1 flex items-center justify-between">
+                <span className="text-muted-foreground">
+                  Shipping {quote.shiprocketAvailable ? `· ${quote.courier}` : "· Standard"}
+                </span>
+                <span>
+                  {quote.freeShipping ? (
+                    <span className="text-emerald-600">FREE</span>
+                  ) : (
+                    `₹${quote.shipping}`
+                  )}
+                </span>
+              </div>
+              <div className="mt-2 flex items-center justify-between border-t border-border pt-2 font-medium">
+                <span>Total</span>
+                <span>₹{quote.total.toLocaleString("en-IN")}</span>
+              </div>
+              <p className="mt-2 text-xs text-muted-foreground">
+                Estimated delivery in {quote.estimatedDays} days.
+                {paymentMethod === "cod" && !quote.codAvailable && (
+                  <span className="ml-1 text-destructive">
+                    COD not available for this PIN — please choose prepaid.
+                  </span>
+                )}
+                {quoteLoading && <span className="ml-1">Refreshing…</span>}
+              </p>
+            </div>
+          )}
 
           <Field label="Order notes (optional)" error={errors.notes} className="sm:col-span-2">
             <textarea
