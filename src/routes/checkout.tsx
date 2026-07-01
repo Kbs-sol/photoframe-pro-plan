@@ -128,6 +128,7 @@ function CheckoutPage() {
       }
       setErrors(fieldErrors);
       return;
+    }
     setErrors({});
     // Server-side validation MUST re-run checkoutSchema.parse() before creating
     // any Razorpay order — never trust client validation alone.
