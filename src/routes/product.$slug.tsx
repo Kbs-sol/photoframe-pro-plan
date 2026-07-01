@@ -1,6 +1,6 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useState } from "react";
-import { getProduct, products, sizes, frames } from "@/lib/products";
+import { getProduct, products, sizes, frameTypes, frameFinishes } from "@/lib/products";
 
 export const Route = createFileRoute("/product/$slug")({
   loader: ({ params }) => {
@@ -36,12 +36,15 @@ export const Route = createFileRoute("/product/$slug")({
 
 function ProductPage() {
   const { product } = Route.useLoaderData();
-  const [size, setSize] = useState(sizes[1].id);
-  const [frame, setFrame] = useState(frames[0].id);
+  const [size, setSize] = useState<(typeof sizes)[number]["id"]>(sizes[1].id);
+  const [frameType, setFrameType] = useState<(typeof frameTypes)[number]["id"]>(frameTypes[0].id);
+  const [finish, setFinish] = useState(frameFinishes[0].id);
   const [qty, setQty] = useState(1);
 
   const sizeObj = sizes.find((s) => s.id === size)!;
-  const price = (product.price + sizeObj.delta) * qty;
+  const frameObj = frameTypes.find((f) => f.id === frameType)!;
+  const unitPrice = product.price + sizeObj.delta + frameObj.priceDelta;
+  const price = unitPrice * qty;
 
   const related = products.filter((p) => p.slug !== product.slug && p.category === product.category).slice(0, 3);
 
@@ -87,20 +90,56 @@ function ProductPage() {
             <p className="mt-6 text-muted-foreground">{product.description}</p>
 
             <div className="mt-8">
-              <div className="mb-2 text-xs uppercase tracking-widest text-muted-foreground">Size</div>
+              <div className="mb-3 flex items-baseline justify-between">
+                <div className="text-xs uppercase tracking-widest text-muted-foreground">Size</div>
+                <div className="text-[11px] text-muted-foreground">Tap a size to see where it fits best</div>
+              </div>
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                 {sizes.map((s) => (
                   <button
                     key={s.id}
                     onClick={() => setSize(s.id)}
-                    className={`rounded-md border px-3 py-3 text-sm transition ${
+                    className={`rounded-md border px-3 py-3 text-left text-sm transition ${
                       size === s.id
                         ? "border-primary bg-primary/5 text-foreground"
                         : "border-border bg-card hover:border-primary/40"
                     }`}
                   >
-                    <div className="font-medium">{s.label}</div>
-                    {s.delta > 0 && <div className="text-[10px] text-muted-foreground">+₹{s.delta}</div>}
+                    <div className="font-display text-base font-semibold">{s.code}</div>
+                    <div className="text-[11px] text-muted-foreground">{s.dims}</div>
+                    {s.delta > 0 && <div className="mt-1 text-[10px] text-accent">+₹{s.delta}</div>}
+                  </button>
+                ))}
+              </div>
+              <div className="mt-3 rounded-md border border-border/70 bg-cream/50 p-3">
+                <div className="text-sm font-medium text-foreground">{sizeObj.useCase}</div>
+                <div className="mt-1 text-xs text-muted-foreground">{sizeObj.scale}</div>
+              </div>
+            </div>
+
+            <div className="mt-6">
+              <div className="mb-2 text-xs uppercase tracking-widest text-muted-foreground">Frame type</div>
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                {frameTypes.map((f) => (
+                  <button
+                    key={f.id}
+                    onClick={() => setFrameType(f.id)}
+                    className={`rounded-md border p-3 text-left text-sm transition ${
+                      frameType === f.id
+                        ? "border-primary bg-primary/5"
+                        : "border-border bg-card hover:border-primary/40"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="font-display text-base font-semibold">{f.label}</div>
+                      {f.priceDelta > 0 && (
+                        <div className="text-[10px] text-accent">+₹{f.priceDelta}</div>
+                      )}
+                    </div>
+                    <div className="mt-1 text-[11px] uppercase tracking-wider text-muted-foreground">
+                      {f.tagline}
+                    </div>
+                    <p className="mt-2 text-xs text-muted-foreground">{f.description}</p>
                   </button>
                 ))}
               </div>
@@ -109,12 +148,12 @@ function ProductPage() {
             <div className="mt-6">
               <div className="mb-2 text-xs uppercase tracking-widest text-muted-foreground">Frame finish</div>
               <div className="flex flex-wrap gap-2">
-                {frames.map((f) => (
+                {frameFinishes.map((f) => (
                   <button
                     key={f.id}
-                    onClick={() => setFrame(f.id)}
+                    onClick={() => setFinish(f.id)}
                     className={`flex items-center gap-2 rounded-full border px-3 py-2 text-sm transition ${
-                      frame === f.id ? "border-primary" : "border-border hover:border-primary/40"
+                      finish === f.id ? "border-primary" : "border-border hover:border-primary/40"
                     }`}
                   >
                     <span className="h-4 w-4 rounded-full border border-border" style={{ background: f.swatch }} />
@@ -123,6 +162,7 @@ function ProductPage() {
                 ))}
               </div>
             </div>
+
 
             <div className="mt-6 flex items-center gap-4">
               <div className="text-xs uppercase tracking-widest text-muted-foreground">Qty</div>
