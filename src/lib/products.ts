@@ -83,14 +83,83 @@ export const products: Product[] = [
   },
 ];
 
-export const sizes = [
-  { id: "a4", label: 'A4 · 8×12"', delta: 0 },
-  { id: "a3", label: 'A3 · 12×18"', delta: 400 },
-  { id: "a2", label: 'A2 · 18×24"', delta: 900 },
-  { id: "a1", label: 'A1 · 24×36"', delta: 1600 },
+export type Size = {
+  id: "xs" | "s" | "m" | "l";
+  code: string;
+  label: string;
+  dims: string;
+  delta: number;
+  useCase: string;
+  scale: string;
+};
+
+export const sizes: Size[] = [
+  {
+    id: "xs",
+    code: "XS",
+    label: 'XS · 8×12"',
+    dims: '8×12 inch',
+    delta: 0,
+    useCase: "Perfect for study tables, office desks, or open shelves.",
+    scale: "About the size of an A4 sheet.",
+  },
+  {
+    id: "s",
+    code: "S",
+    label: 'S · 12×18"',
+    dims: '12×18 inch',
+    delta: 300,
+    useCase: "Great above bedside tables, reading nooks, or a small gallery wall.",
+    scale: "Roughly the size of a standard laptop screen.",
+  },
+  {
+    id: "m",
+    code: "M",
+    label: 'M · 16×20"',
+    dims: '16×20 inch',
+    delta: 650,
+    useCase: "Ideal centerpiece above sofas, consoles, or a study bed.",
+    scale: "Around the size of a large kitchen tray.",
+  },
+  {
+    id: "l",
+    code: "L",
+    label: 'L · 20×30"',
+    dims: '20×30 inch',
+    delta: 1250,
+    useCase: "A statement piece for living-room feature walls and entryways.",
+    scale: "Close to the size of a folded newspaper spread.",
+  },
 ];
 
-export const frames = [
+export type FrameType = {
+  id: "direct" | "mount";
+  label: string;
+  tagline: string;
+  description: string;
+  priceDelta: number;
+};
+
+export const frameTypes: FrameType[] = [
+  {
+    id: "direct",
+    label: "Direct Frame",
+    tagline: "Print edge-to-edge, no border",
+    description:
+      "Artwork runs right to the frame edge. Bold, modern look — best when you want the design to fill the wall.",
+    priceDelta: 0,
+  },
+  {
+    id: "mount",
+    label: "Mount Frame",
+    tagline: "White matboard border around the print",
+    description:
+      "A crisp museum-style matboard surrounds the artwork. Elegant, gallery-inspired finish that draws the eye in.",
+    priceDelta: 200,
+  },
+];
+
+export const frameFinishes = [
   { id: "black", label: "Matte Black", swatch: "#111111" },
   { id: "walnut", label: "Walnut Wood", swatch: "#6b4226" },
   { id: "oak", label: "Natural Oak", swatch: "#c9a97a" },
