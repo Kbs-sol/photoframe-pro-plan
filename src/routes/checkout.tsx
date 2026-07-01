@@ -1,6 +1,26 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { checkoutSchema, type CheckoutInput } from "@/lib/checkout-schema";
+import {
+  validatePincodeFn,
+  estimateShippingFn,
+} from "@/lib/shipping.functions";
+
+type ShippingQuote = {
+  shipping: number;
+  total: number;
+  cartTotal: number;
+  freeShipping: boolean;
+  estimatedDays: string;
+  courier: string;
+  codAvailable: boolean;
+  shiprocketAvailable: boolean;
+};
+
+// Demo cart — replace with real cart state when wired up.
+const DEMO_CART: Array<{ size: "XS" | "S" | "M" | "L"; price: number; quantity: number }> = [
+  { size: "M", price: 1399, quantity: 1 },
+];
 
 export const Route = createFileRoute("/checkout")({
   head: () => ({
