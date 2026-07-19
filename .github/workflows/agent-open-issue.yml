@@ -1,0 +1,45 @@
+name: agent-open-issue
+
+# Escalation channel: agent opens a human-todo issue when a task is out of reach.
+
+on:
+  workflow_dispatch:
+    inputs:
+      title:
+        description: "Issue title (should start with [HUMAN])"
+        required: true
+      body_b64:
+        description: "Base64-encoded markdown body (must use escalation template)"
+        required: true
+      labels:
+        description: "Comma-separated labels (default: human-todo)"
+        required: false
+        default: "human-todo"
+      priority:
+        description: "p0 | p1 | p2"
+        required: false
+        default: "p1"
+
+permissions:
+  issues: write
+  contents: read
+
+jobs:
+  open:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Open issue
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TITLE: ${{ inputs.title }}
+          BODY_B64: ${{ inputs.body_b64 }}
+          LABELS: ${{ inputs.labels }},${{ inputs.priority }}
+        run: |
+          echo "$BODY_B64" | base64 -d > /tmp/body.md
+          # Fail if already an open issue with the same title.
+          if gh issue list --state open --search "in:title \"$TITLE\"" --json title --jq '.[].title' | grep -Fxq "$TITLE"; then
+            echo "Duplicate open issue: $TITLE"
+            exit 0
+          fi
+          gh issue create --title "$TITLE" --body-file /tmp/body.md --label "$LABELS"

@@ -1,0 +1,79 @@
+name: agent-fetch-data
+
+on:
+  workflow_dispatch:
+    inputs:
+      sources:
+        description: "Comma-separated sources to pull (razorpay,gsc,ga4,supabase,clarity,cloudinary,competitors,feedback). Empty = all."
+        required: false
+        default: ""
+      days:
+        description: "Lookback window in days for time-bounded sources"
+        required: false
+        default: "28"
+
+permissions:
+  contents: read
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with: { bun-version: latest }
+
+      - name: Compute source list
+        id: srcs
+        run: |
+          if [ -z "${{ inputs.sources }}" ]; then
+            echo "list=razorpay,gsc,ga4,supabase,clarity,cloudinary,competitors,feedback" >> $GITHUB_OUTPUT
+          else
+            echo "list=${{ inputs.sources }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Run fetchers
+        env:
+          DAYS: ${{ inputs.days }}
+          RAZORPAY_KEY_ID: ${{ secrets.RAZORPAY_KEY_ID }}
+          RAZORPAY_KEY_SECRET: ${{ secrets.RAZORPAY_KEY_SECRET }}
+          GSC_SERVICE_ACCOUNT_JSON: ${{ secrets.GSC_SERVICE_ACCOUNT_JSON }}
+          GSC_SITE_URL: ${{ secrets.GSC_SITE_URL }}
+          GA4_SERVICE_ACCOUNT_JSON: ${{ secrets.GA4_SERVICE_ACCOUNT_JSON }}
+          GA4_PROPERTY_ID: ${{ secrets.GA4_PROPERTY_ID }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          CLARITY_API_TOKEN: ${{ secrets.CLARITY_API_TOKEN }}
+          CLOUDINARY_URL: ${{ secrets.CLOUDINARY_URL }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: |
+          set -e
+          mkdir -p out
+          IFS=',' read -ra SRCS <<< "${{ steps.srcs.outputs.list }}"
+          for s in "${SRCS[@]}"; do
+            case "$s" in
+              razorpay)     bun .agent/scripts/fetch-razorpay.ts --days "$DAYS" || true ;;
+              gsc)          bun .agent/scripts/fetch-gsc.ts --days "$DAYS" || true ;;
+              ga4)          bun .agent/scripts/fetch-ga4.ts --days "$DAYS" || true ;;
+              supabase)     bun .agent/scripts/fetch-supabase.ts || true ;;
+              clarity)      bun .agent/scripts/fetch-clarity.ts --days 3 || true ;;
+              cloudinary)   bun .agent/scripts/fetch-cloudinary.ts || true ;;
+              competitors)  bun .agent/scripts/scrape-competitors.ts || true ;;
+              feedback)     bun .agent/scripts/harvest-feedback.ts || true ;;
+            esac
+          done
+
+      - name: Compute pace
+        if: hashFiles('out/razorpay.json') != ''
+        run: bun .agent/scripts/compute-pace.ts || true
+
+      - name: Package report
+        run: bun .agent/scripts/package-report.ts
+
+      - name: Upload report artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: agent-report
+          path: out/
+          retention-days: 14

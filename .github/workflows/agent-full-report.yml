@@ -1,0 +1,62 @@
+name: agent-full-report
+
+# Weekly bundle: fetch everything + compose a full brief, emailed via Resend if configured.
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Sunday 06:00 IST = Sunday 00:30 UTC. Commented out until user opts in.
+    # - cron: "30 0 * * 0"
+
+permissions:
+  contents: read
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with: { bun-version: latest }
+      - name: Fetch everything
+        env:
+          RAZORPAY_KEY_ID: ${{ secrets.RAZORPAY_KEY_ID }}
+          RAZORPAY_KEY_SECRET: ${{ secrets.RAZORPAY_KEY_SECRET }}
+          GSC_SERVICE_ACCOUNT_JSON: ${{ secrets.GSC_SERVICE_ACCOUNT_JSON }}
+          GSC_SITE_URL: ${{ secrets.GSC_SITE_URL }}
+          GA4_SERVICE_ACCOUNT_JSON: ${{ secrets.GA4_SERVICE_ACCOUNT_JSON }}
+          GA4_PROPERTY_ID: ${{ secrets.GA4_PROPERTY_ID }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          CLARITY_API_TOKEN: ${{ secrets.CLARITY_API_TOKEN }}
+          CLOUDINARY_URL: ${{ secrets.CLOUDINARY_URL }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: |
+          mkdir -p out
+          bun .agent/scripts/fetch-razorpay.ts --days 28 || true
+          bun .agent/scripts/fetch-gsc.ts --days 28 || true
+          bun .agent/scripts/fetch-ga4.ts --days 28 || true
+          bun .agent/scripts/fetch-supabase.ts || true
+          bun .agent/scripts/scrape-competitors.ts || true
+          bun .agent/scripts/harvest-feedback.ts || true
+          bun .agent/scripts/compute-pace.ts || true
+          bun .agent/scripts/package-report.ts
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: agent-weekly-report
+          path: out/
+
+      - name: Email via Resend (optional)
+        if: ${{ env.RESEND_API_KEY != '' && env.OWNER_EMAIL != '' }}
+        env:
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          OWNER_EMAIL: ${{ secrets.OWNER_EMAIL }}
+        run: |
+          BODY=$(cat out/pace.json 2>/dev/null || echo "{}")
+          curl -sS -X POST https://api.resend.com/emails \
+            -H "Authorization: Bearer $RESEND_API_KEY" \
+            -H "Content-Type: application/json" \
+            -d "{\"from\":\"agent@chitraframe.in\",\"to\":\"$OWNER_EMAIL\",\"subject\":\"ChitraFrame weekly brief\",\"text\":$(echo "$BODY" | jq -Rs .)}" || true

@@ -1,9 +1,0 @@
-{
-  "name": "chitraframe-agent-scripts",
-  "private": true,
-  "type": "module",
-  "dependencies": {
-    "google-auth-library": "^9.14.2",
-    "@supabase/supabase-js": "^2.45.0"
-  }
-}

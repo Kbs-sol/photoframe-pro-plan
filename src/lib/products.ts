@@ -5,6 +5,11 @@ import football from "@/assets/designs/football-glory-moment.jpg";
 import cricket from "@/assets/designs/cricket-stadium-lights.jpg";
 import porsche from "@/assets/designs/porsche-911-sunset-drive.jpg";
 import lambo from "@/assets/designs/midnight-lambo-neon.jpg";
+import radhaKrishnaPeacock from "@/assets/designs/radha-krishna-peacock-lotus.jpg";
+import sitaRam from "@/assets/designs/sita-ram-forest-ashram.jpg";
+import ramDarbar from "@/assets/designs/ram-darbar-pattachitra.jpg";
+import radhaKrishnaTeal from "@/assets/designs/radha-krishna-teal-gold.jpg";
+import shivaNeon from "@/assets/designs/shiva-neon-line-art.jpg";
 
 export type Category = "Devotional" | "Sports" | "Automotive";
 
@@ -18,6 +23,51 @@ export type Product = {
 };
 
 export const products: Product[] = [
+  {
+    slug: "radha-krishna-peacock-lotus",
+    title: "Radha Krishna — Peacock & Lotus",
+    category: "Devotional",
+    price: 749,
+    image: radhaKrishnaPeacock,
+    description:
+      "Radha and Krishna in an intimate watercolor moment, framed by peacock feathers and blooming lotuses. Hand-painted style, museum-grade reproduction — perfect for the puja room or as a wedding gift.",
+  },
+  {
+    slug: "sita-ram-forest-ashram",
+    title: "Sita Ram — Forest Ashram",
+    category: "Devotional",
+    price: 749,
+    image: sitaRam,
+    description:
+      "A rare, tender depiction of Lord Ram and Sita seated by a lotus pond in the Panchavati forest, deer resting nearby. Soft watercolor tones bring calm and devotion to any wall.",
+  },
+  {
+    slug: "ram-darbar-pattachitra",
+    title: "Ram Darbar — Classic Pattachitra",
+    category: "Devotional",
+    price: 749,
+    image: ramDarbar,
+    description:
+      "The full Ram Darbar — Ram, Sita, Lakshman and Hanuman — rendered in traditional pattachitra style with intricate gold borders. An auspicious centerpiece for the puja room.",
+  },
+  {
+    slug: "radha-krishna-teal-gold",
+    title: "Radha Krishna — Teal & Gold",
+    category: "Devotional",
+    price: 749,
+    image: radhaKrishnaTeal,
+    description:
+      "A bold, modern watercolor of Radha and Krishna in flowing teal robes with shimmering gold accents. A statement piece for the contemporary home.",
+  },
+  {
+    slug: "shiva-neon-line-art",
+    title: "Shiva — Neon Line Art",
+    category: "Devotional",
+    price: 749,
+    image: shivaNeon,
+    description:
+      "Lord Shiva in meditative repose, rendered in glowing neon linework on deep black. A modern devotional statement for the minimalist home.",
+  },
   {
     slug: "krishna-flute-melody",
     title: "Krishna's Flute Melody",

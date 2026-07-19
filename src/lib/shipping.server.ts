@@ -169,3 +169,180 @@ export function calculateShipping(
   const raw = shiprocketCharge ?? 99;
   return roundToTier(raw);
 }
+
+// ── Shiprocket order creation (used after payment/COD) ───────────────────────
+// Legacy size names → dimensions. Supports both {XS,S,M,L} and {A4,Small,Medium,Large,XL}.
+const LEGACY_DIMENSIONS: Record<
+  string,
+  { length: number; breadth: number; height: number; weight: number }
+> = {
+  A4: { length: 32, breadth: 24, height: 2, weight: 0.3 },
+  Small: { length: 48, breadth: 35, height: 4, weight: 1.2 },
+  Medium: { length: 55, breadth: 45, height: 5, weight: 2.0 },
+  Large: { length: 80, breadth: 55, height: 6, weight: 3.5 },
+  XL: { length: 95, breadth: 70, height: 8, weight: 6.0 },
+  XS: SIZE_DIMENSIONS.XS,
+  S: SIZE_DIMENSIONS.S,
+  M: SIZE_DIMENSIONS.M,
+  L: SIZE_DIMENSIONS.L,
+};
+
+function dimsFor(size: string) {
+  return LEGACY_DIMENSIONS[size] || LEGACY_DIMENSIONS.Medium;
+}
+
+/**
+ * Create Shiprocket order(s). Each frame ships as its own package.
+ * Returns array of Shiprocket order IDs on success.
+ */
+export async function createShiprocketOrder(
+  order: any,
+): Promise<{ success: boolean; shiprocketOrderIds?: string[]; error?: string }> {
+  const token = await getShiprocketToken();
+  if (!token) return { success: false, error: "Failed to authenticate with Shiprocket" };
+
+  try {
+    const results: string[] = [];
+    const expandedItems: any[] = [];
+    for (const item of order.items || []) {
+      const qty = item.quantity || 1;
+      for (let i = 0; i < qty; i++) expandedItems.push({ ...item, quantity: 1 });
+    }
+
+    for (let index = 0; index < expandedItems.length; index++) {
+      const item = expandedItems[index];
+      const dims = dimsFor(item.size);
+      const payload = {
+        order_id:
+          expandedItems.length > 1 ? `${order.order_id}-${index + 1}` : order.order_id,
+        order_date: new Date().toISOString().slice(0, 10),
+        pickup_location: process.env.SHIPROCKET_PICKUP_LOCATION || "Primary",
+        billing_customer_name: order.customer_name,
+        billing_last_name: "",
+        billing_address: order.address.line1,
+        billing_address_2: order.address.line2 || "",
+        billing_city: order.address.city,
+        billing_pincode: order.address.pincode,
+        billing_state: order.address.state,
+        billing_country: "India",
+        billing_email: order.customer_email,
+        billing_phone: order.customer_phone,
+        shipping_is_billing: true,
+        order_items: [
+          {
+            name: item.name,
+            sku: item.sku || `SKU-${String(item.variant_id || "").slice(0, 8)}`,
+            units: item.quantity || 1,
+            selling_price: item.price,
+            discount: 0,
+            tax: 0,
+          },
+        ],
+        payment_method: order.payment_method === "cod" ? "COD" : "Prepaid",
+        sub_total: item.price * (item.quantity || 1),
+        length: dims.length,
+        breadth: dims.breadth,
+        height: dims.height,
+        weight: dims.weight * (item.quantity || 1),
+      };
+
+      const res = await fetch(
+        "https://apiv2.shiprocket.in/v1/external/orders/create/adhoc",
+        {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        },
+      );
+      const data: any = await res.json();
+      if (data.order_id) {
+        results.push(String(data.order_id));
+      } else {
+        return {
+          success: false,
+          error: data.message || JSON.stringify(data.errors) || `Failed on item ${index + 1}`,
+        };
+      }
+    }
+    return { success: true, shiprocketOrderIds: results };
+  } catch (e: any) {
+    return { success: false, error: e.message };
+  }
+}
+
+// ── Shiprocket logistics operations (ported from PhotoFramePFS) ──────────────
+// AWB assignment, pickup scheduling, and label generation for admin console.
+
+/** Assign an AWB (air waybill) to a Shiprocket shipment. */
+export async function generateAWB(
+  shiprocketOrderId: string,
+): Promise<{ success: boolean; awb?: string; courier?: string; error?: string }> {
+  const token = await getShiprocketToken();
+  if (!token) return { success: false, error: "Shiprocket auth failed" };
+  try {
+    const res = await fetch("https://apiv2.shiprocket.in/v1/external/courier/assign/awb", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ shipment_id: shiprocketOrderId }),
+    });
+    const data: any = await res.json();
+    if (data.response?.data?.awb_code) {
+      return {
+        success: true,
+        awb: data.response.data.awb_code,
+        courier: data.response.data.courier_name,
+      };
+    }
+    return { success: false, error: data.message || "No AWB generated" };
+  } catch (e: any) {
+    return { success: false, error: e.message };
+  }
+}
+
+/** Schedule courier pickup for a Shiprocket shipment. */
+export async function schedulePickup(
+  shiprocketOrderId: string,
+): Promise<{ success: boolean; error?: string }> {
+  const token = await getShiprocketToken();
+  if (!token) return { success: false, error: "Shiprocket auth failed" };
+  try {
+    const res = await fetch(
+      "https://apiv2.shiprocket.in/v1/external/courier/generate/pickup",
+      {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ shipment_id: [shiprocketOrderId] }),
+      },
+    );
+    if (!res.ok) {
+      const data: any = await res.json().catch(() => ({}));
+      return { success: false, error: data.message || `Pickup failed (${res.status})` };
+    }
+    return { success: true };
+  } catch (e: any) {
+    return { success: false, error: e.message };
+  }
+}
+
+/** Generate a shipping label PDF for a Shiprocket shipment. */
+export async function generateLabel(
+  shiprocketOrderId: string,
+): Promise<{ success: boolean; labelUrl?: string; error?: string }> {
+  const token = await getShiprocketToken();
+  if (!token) return { success: false, error: "Shiprocket auth failed" };
+  try {
+    const res = await fetch(
+      "https://apiv2.shiprocket.in/v1/external/courier/generate/label",
+      {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ shipment_id: [shiprocketOrderId] }),
+      },
+    );
+    const data: any = await res.json();
+    if (data.label_url) return { success: true, labelUrl: data.label_url };
+    return { success: false, error: data.message || "Label generation failed" };
+  } catch (e: any) {
+    return { success: false, error: e.message };
+  }
+}

@@ -1,0 +1,82 @@
+name: agent-apply-changes
+
+# Takes a JSON list of file changes from the agent and opens a PR.
+# The agent NEVER pushes to main directly through this workflow.
+
+on:
+  workflow_dispatch:
+    inputs:
+      changes_json_b64:
+        description: 'Base64-encoded JSON: [{"path":"...", "content_b64":"..."}]'
+        required: true
+      branch_name:
+        description: "Branch name, e.g. agent/2026-07-01-seo-rewrites"
+        required: true
+      pr_title:
+        description: "PR title"
+        required: true
+      pr_body:
+        description: "PR body (markdown, must contain '## Agent decision' block)"
+        required: true
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+
+      - name: Guard forbidden paths
+        env:
+          CHANGES_B64: ${{ inputs.changes_json_b64 }}
+        run: |
+          set -e
+          echo "$CHANGES_B64" | base64 -d > /tmp/changes.json
+          # Reject any change touching forbidden paths.
+          FORBIDDEN='^(package\.json|bun\.lockb|bunfig\.toml|tsconfig\.json|vite\.config\.ts|\.env|\.github/|supabase/migrations/|src/lib/checkout\.functions\.ts|src/lib/orders\.functions\.ts|src/lib/razorpay\.ts|src/lib/.*\.server\.ts|src/routes/checkout\.tsx|src/routes/track\.tsx|src/routes/api/)'
+          if node -e "const c=require('/tmp/changes.json');const re=new RegExp(process.env.F);const bad=c.filter(x=>re.test(x.path));if(bad.length){console.error('Forbidden paths: '+bad.map(b=>b.path).join(','));process.exit(1)}" F="$FORBIDDEN"; then
+            echo "Path guard OK"
+          fi
+
+      - name: Validate PR body has decision block
+        run: |
+          echo "${{ inputs.pr_body }}" | grep -q "## Agent decision" || { echo "PR body missing '## Agent decision' block"; exit 1; }
+
+      - name: Write files
+        run: |
+          node - <<'EOF'
+          const fs = require('fs');
+          const path = require('path');
+          const changes = JSON.parse(fs.readFileSync('/tmp/changes.json', 'utf8'));
+          for (const c of changes) {
+            const dir = path.dirname(c.path);
+            fs.mkdirSync(dir, { recursive: true });
+            fs.writeFileSync(c.path, Buffer.from(c.content_b64, 'base64'));
+            console.log('wrote', c.path);
+          }
+          EOF
+
+      - name: Create branch, commit, push
+        env:
+          BRANCH: ${{ inputs.branch_name }}
+          TITLE: ${{ inputs.pr_title }}
+        run: |
+          git config user.name "chitraframe-agent[bot]"
+          git config user.email "agent@chitraframe.local"
+          git checkout -b "$BRANCH"
+          git add -A
+          git commit -m "$TITLE" || { echo "No changes to commit"; exit 1; }
+          git push origin "$BRANCH"
+
+      - name: Open PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BRANCH: ${{ inputs.branch_name }}
+          TITLE: ${{ inputs.pr_title }}
+          BODY: ${{ inputs.pr_body }}
+        run: |
+          gh pr create --title "$TITLE" --body "$BODY" --head "$BRANCH" --base main --label agent

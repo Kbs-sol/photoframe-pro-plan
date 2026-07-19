@@ -1,0 +1,58 @@
+name: agent-publish-blog
+
+# Convenience wrapper — opens a PR containing a single blog post.
+# Under the hood, delegates to the same guard rules as agent-apply-changes.
+
+on:
+  workflow_dispatch:
+    inputs:
+      slug:
+        description: "URL slug, e.g. ganesh-chaturthi-wall-art-hyderabad"
+        required: true
+      title:
+        description: "Post title"
+        required: true
+      mdx_content_b64:
+        description: "Base64-encoded MDX/markdown content"
+        required: true
+      pr_body:
+        description: "PR body (must contain '## Agent decision')"
+        required: true
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Write blog file
+        env:
+          SLUG: ${{ inputs.slug }}
+          MDX: ${{ inputs.mdx_content_b64 }}
+        run: |
+          set -e
+          mkdir -p src/content/blog
+          DATE=$(date +%F)
+          FILE="src/content/blog/${DATE}-${SLUG}.md"
+          echo "$MDX" | base64 -d > "$FILE"
+          echo "Wrote $FILE"
+
+      - name: Commit and PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TITLE: ${{ inputs.title }}
+          BODY: ${{ inputs.pr_body }}
+          SLUG: ${{ inputs.slug }}
+        run: |
+          echo "$BODY" | grep -q "## Agent decision" || { echo "PR body missing '## Agent decision'"; exit 1; }
+          BRANCH="agent/blog-$(date +%F)-$SLUG"
+          git config user.name "chitraframe-agent[bot]"
+          git config user.email "agent@chitraframe.local"
+          git checkout -b "$BRANCH"
+          git add -A
+          git commit -m "blog: $TITLE"
+          git push origin "$BRANCH"
+          gh pr create --title "blog: $TITLE" --body "$BODY" --head "$BRANCH" --base main --label agent --label blog

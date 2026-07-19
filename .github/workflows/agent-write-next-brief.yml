@@ -1,0 +1,52 @@
+name: agent-write-next-brief
+
+# Writes .agent/next-run.md, appends to history.md and decisions.jsonl.
+# Commits directly to main (this is meta-content, not code).
+
+on:
+  workflow_dispatch:
+    inputs:
+      next_run_md_b64:
+        description: "Base64 encoded new next-run.md content"
+        required: true
+      history_append_b64:
+        description: "Base64 encoded markdown block to append to history.md"
+        required: false
+        default: ""
+      decisions_append_b64:
+        description: "Base64 encoded JSONL rows to append to decisions.jsonl"
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+jobs:
+  write:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Write next-run.md
+        run: echo "${{ inputs.next_run_md_b64 }}" | base64 -d > .agent/next-run.md
+
+      - name: Append history
+        if: ${{ inputs.history_append_b64 != '' }}
+        run: |
+          echo "" >> .agent/history.md
+          echo "${{ inputs.history_append_b64 }}" | base64 -d >> .agent/history.md
+
+      - name: Append decisions
+        if: ${{ inputs.decisions_append_b64 != '' }}
+        run: echo "${{ inputs.decisions_append_b64 }}" | base64 -d >> .agent/decisions.jsonl
+
+      - name: Commit to main
+        run: |
+          git config user.name "chitraframe-agent[bot]"
+          git config user.email "agent@chitraframe.local"
+          git add .agent/
+          if git diff --cached --quiet; then
+            echo "No changes"
+            exit 0
+          fi
+          git commit -m "agent: update next-run brief $(date -u +%FT%TZ)"
+          git push origin HEAD:main
