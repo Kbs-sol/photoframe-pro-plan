@@ -9,29 +9,33 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as TrackRouteImport } from './routes/track'
-import { Route as CheckoutRouteImport } from './routes/checkout'
-import { Route as AdminRouteImport } from './routes/_admin'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as ProductSlugRouteImport } from './routes/product.$slug'
-import { Route as PoliciesTermsRouteImport } from './routes/policies.terms'
-import { Route as PoliciesShippingRouteImport } from './routes/policies.shipping'
-import { Route as PoliciesRefundsRouteImport } from './routes/policies.refunds'
-import { Route as PoliciesPrivacyRouteImport } from './routes/policies.privacy'
-import { Route as ApiAssistantRouteImport } from './routes/api/assistant'
+import { Route as AdminRouteImport } from './routes/_admin'
+import { Route as CheckoutRouteImport } from './routes/checkout'
+import { Route as TrackRouteImport } from './routes/track'
 import { Route as AdminAdminRouteImport } from './routes/_admin.admin'
-import { Route as AdminAdminReviewsRouteImport } from './routes/_admin.admin_.reviews'
-import { Route as AdminAdminProductsRouteImport } from './routes/_admin.admin_.products'
-import { Route as AdminAdminOrdersRouteImport } from './routes/_admin.admin_.orders'
-import { Route as AdminAdminCustomersRouteImport } from './routes/_admin.admin_.customers'
-import { Route as AdminAdminCouponsRouteImport } from './routes/_admin.admin_.coupons'
+import { Route as ApiAssistantRouteImport } from './routes/api/assistant'
+import { Route as PoliciesPrivacyRouteImport } from './routes/policies.privacy'
+import { Route as PoliciesRefundsRouteImport } from './routes/policies.refunds'
+import { Route as PoliciesShippingRouteImport } from './routes/policies.shipping'
+import { Route as PoliciesTermsRouteImport } from './routes/policies.terms'
+import { Route as ProductSlugRouteImport } from './routes/product.$slug'
 import { Route as AdminAdminAnalyticsRouteImport } from './routes/_admin.admin_.analytics'
-import { Route as AdminAdminProductsIdRouteImport } from './routes/_admin.admin_.products.$id'
+import { Route as AdminAdminCouponsRouteImport } from './routes/_admin.admin_.coupons'
+import { Route as AdminAdminCustomersRouteImport } from './routes/_admin.admin_.customers'
+import { Route as AdminAdminOrdersRouteImport } from './routes/_admin.admin_.orders'
+import { Route as AdminAdminProductsRouteImport } from './routes/_admin.admin_.products'
+import { Route as AdminAdminReviewsRouteImport } from './routes/_admin.admin_.reviews'
 import { Route as AdminAdminOrdersIdRouteImport } from './routes/_admin.admin_.orders.$id'
+import { Route as AdminAdminProductsIdRouteImport } from './routes/_admin.admin_.products.$id'
 
-const TrackRoute = TrackRouteImport.update({
-  id: '/track',
-  path: '/track',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminRoute = AdminRouteImport.update({
+  id: '/_admin',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CheckoutRoute = CheckoutRouteImport.update({
@@ -39,43 +43,9 @@ const CheckoutRoute = CheckoutRouteImport.update({
   path: '/checkout',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AdminRoute = AdminRouteImport.update({
-  id: '/_admin',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ProductSlugRoute = ProductSlugRouteImport.update({
-  id: '/product/$slug',
-  path: '/product/$slug',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PoliciesTermsRoute = PoliciesTermsRouteImport.update({
-  id: '/policies/terms',
-  path: '/policies/terms',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PoliciesShippingRoute = PoliciesShippingRouteImport.update({
-  id: '/policies/shipping',
-  path: '/policies/shipping',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PoliciesRefundsRoute = PoliciesRefundsRouteImport.update({
-  id: '/policies/refunds',
-  path: '/policies/refunds',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PoliciesPrivacyRoute = PoliciesPrivacyRouteImport.update({
-  id: '/policies/privacy',
-  path: '/policies/privacy',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiAssistantRoute = ApiAssistantRouteImport.update({
-  id: '/api/assistant',
-  path: '/api/assistant',
+const TrackRoute = TrackRouteImport.update({
+  id: '/track',
+  path: '/track',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminAdminRoute = AdminAdminRouteImport.update({
@@ -83,24 +53,39 @@ const AdminAdminRoute = AdminAdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => AdminRoute,
 } as any)
-const AdminAdminReviewsRoute = AdminAdminReviewsRouteImport.update({
-  id: '/admin_/reviews',
-  path: '/admin/reviews',
-  getParentRoute: () => AdminRoute,
+const ApiAssistantRoute = ApiAssistantRouteImport.update({
+  id: '/api/assistant',
+  path: '/api/assistant',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const AdminAdminProductsRoute = AdminAdminProductsRouteImport.update({
-  id: '/admin_/products',
-  path: '/admin/products',
-  getParentRoute: () => AdminRoute,
+const PoliciesPrivacyRoute = PoliciesPrivacyRouteImport.update({
+  id: '/policies/privacy',
+  path: '/policies/privacy',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const AdminAdminOrdersRoute = AdminAdminOrdersRouteImport.update({
-  id: '/admin_/orders',
-  path: '/admin/orders',
-  getParentRoute: () => AdminRoute,
+const PoliciesRefundsRoute = PoliciesRefundsRouteImport.update({
+  id: '/policies/refunds',
+  path: '/policies/refunds',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const AdminAdminCustomersRoute = AdminAdminCustomersRouteImport.update({
-  id: '/admin_/customers',
-  path: '/admin/customers',
+const PoliciesShippingRoute = PoliciesShippingRouteImport.update({
+  id: '/policies/shipping',
+  path: '/policies/shipping',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PoliciesTermsRoute = PoliciesTermsRouteImport.update({
+  id: '/policies/terms',
+  path: '/policies/terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProductSlugRoute = ProductSlugRouteImport.update({
+  id: '/product/$slug',
+  path: '/product/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminAdminAnalyticsRoute = AdminAdminAnalyticsRouteImport.update({
+  id: '/admin_/analytics',
+  path: '/admin/analytics',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminAdminCouponsRoute = AdminAdminCouponsRouteImport.update({
@@ -108,20 +93,35 @@ const AdminAdminCouponsRoute = AdminAdminCouponsRouteImport.update({
   path: '/admin/coupons',
   getParentRoute: () => AdminRoute,
 } as any)
-const AdminAdminAnalyticsRoute = AdminAdminAnalyticsRouteImport.update({
-  id: '/admin_/analytics',
-  path: '/admin/analytics',
+const AdminAdminCustomersRoute = AdminAdminCustomersRouteImport.update({
+  id: '/admin_/customers',
+  path: '/admin/customers',
   getParentRoute: () => AdminRoute,
 } as any)
-const AdminAdminProductsIdRoute = AdminAdminProductsIdRouteImport.update({
-  id: '/$id',
-  path: '/$id',
-  getParentRoute: () => AdminAdminProductsRoute,
+const AdminAdminOrdersRoute = AdminAdminOrdersRouteImport.update({
+  id: '/admin_/orders',
+  path: '/admin/orders',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminAdminProductsRoute = AdminAdminProductsRouteImport.update({
+  id: '/admin_/products',
+  path: '/admin/products',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminAdminReviewsRoute = AdminAdminReviewsRouteImport.update({
+  id: '/admin_/reviews',
+  path: '/admin/reviews',
+  getParentRoute: () => AdminRoute,
 } as any)
 const AdminAdminOrdersIdRoute = AdminAdminOrdersIdRouteImport.update({
   id: '/$id',
   path: '/$id',
   getParentRoute: () => AdminAdminOrdersRoute,
+} as any)
+const AdminAdminProductsIdRoute = AdminAdminProductsIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => AdminAdminProductsRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
@@ -265,18 +265,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/track': {
-      id: '/track'
-      path: '/track'
-      fullPath: '/track'
-      preLoaderRoute: typeof TrackRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/checkout': {
-      id: '/checkout'
-      path: '/checkout'
-      fullPath: '/checkout'
-      preLoaderRoute: typeof CheckoutRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_admin': {
@@ -286,53 +279,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+    '/checkout': {
+      id: '/checkout'
+      path: '/checkout'
+      fullPath: '/checkout'
+      preLoaderRoute: typeof CheckoutRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/product/$slug': {
-      id: '/product/$slug'
-      path: '/product/$slug'
-      fullPath: '/product/$slug'
-      preLoaderRoute: typeof ProductSlugRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/policies/terms': {
-      id: '/policies/terms'
-      path: '/policies/terms'
-      fullPath: '/policies/terms'
-      preLoaderRoute: typeof PoliciesTermsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/policies/shipping': {
-      id: '/policies/shipping'
-      path: '/policies/shipping'
-      fullPath: '/policies/shipping'
-      preLoaderRoute: typeof PoliciesShippingRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/policies/refunds': {
-      id: '/policies/refunds'
-      path: '/policies/refunds'
-      fullPath: '/policies/refunds'
-      preLoaderRoute: typeof PoliciesRefundsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/policies/privacy': {
-      id: '/policies/privacy'
-      path: '/policies/privacy'
-      fullPath: '/policies/privacy'
-      preLoaderRoute: typeof PoliciesPrivacyRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/assistant': {
-      id: '/api/assistant'
-      path: '/api/assistant'
-      fullPath: '/api/assistant'
-      preLoaderRoute: typeof ApiAssistantRouteImport
+    '/track': {
+      id: '/track'
+      path: '/track'
+      fullPath: '/track'
+      preLoaderRoute: typeof TrackRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_admin/admin': {
@@ -342,32 +300,53 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAdminRouteImport
       parentRoute: typeof AdminRoute
     }
-    '/_admin/admin_/reviews': {
-      id: '/_admin/admin_/reviews'
-      path: '/admin/reviews'
-      fullPath: '/admin/reviews'
-      preLoaderRoute: typeof AdminAdminReviewsRouteImport
-      parentRoute: typeof AdminRoute
+    '/api/assistant': {
+      id: '/api/assistant'
+      path: '/api/assistant'
+      fullPath: '/api/assistant'
+      preLoaderRoute: typeof ApiAssistantRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/_admin/admin_/products': {
-      id: '/_admin/admin_/products'
-      path: '/admin/products'
-      fullPath: '/admin/products'
-      preLoaderRoute: typeof AdminAdminProductsRouteImport
-      parentRoute: typeof AdminRoute
+    '/policies/privacy': {
+      id: '/policies/privacy'
+      path: '/policies/privacy'
+      fullPath: '/policies/privacy'
+      preLoaderRoute: typeof PoliciesPrivacyRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/_admin/admin_/orders': {
-      id: '/_admin/admin_/orders'
-      path: '/admin/orders'
-      fullPath: '/admin/orders'
-      preLoaderRoute: typeof AdminAdminOrdersRouteImport
-      parentRoute: typeof AdminRoute
+    '/policies/refunds': {
+      id: '/policies/refunds'
+      path: '/policies/refunds'
+      fullPath: '/policies/refunds'
+      preLoaderRoute: typeof PoliciesRefundsRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/_admin/admin_/customers': {
-      id: '/_admin/admin_/customers'
-      path: '/admin/customers'
-      fullPath: '/admin/customers'
-      preLoaderRoute: typeof AdminAdminCustomersRouteImport
+    '/policies/shipping': {
+      id: '/policies/shipping'
+      path: '/policies/shipping'
+      fullPath: '/policies/shipping'
+      preLoaderRoute: typeof PoliciesShippingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/policies/terms': {
+      id: '/policies/terms'
+      path: '/policies/terms'
+      fullPath: '/policies/terms'
+      preLoaderRoute: typeof PoliciesTermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/product/$slug': {
+      id: '/product/$slug'
+      path: '/product/$slug'
+      fullPath: '/product/$slug'
+      preLoaderRoute: typeof ProductSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_admin/admin_/analytics': {
+      id: '/_admin/admin_/analytics'
+      path: '/admin/analytics'
+      fullPath: '/admin/analytics'
+      preLoaderRoute: typeof AdminAdminAnalyticsRouteImport
       parentRoute: typeof AdminRoute
     }
     '/_admin/admin_/coupons': {
@@ -377,19 +356,33 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAdminCouponsRouteImport
       parentRoute: typeof AdminRoute
     }
-    '/_admin/admin_/analytics': {
-      id: '/_admin/admin_/analytics'
-      path: '/admin/analytics'
-      fullPath: '/admin/analytics'
-      preLoaderRoute: typeof AdminAdminAnalyticsRouteImport
+    '/_admin/admin_/customers': {
+      id: '/_admin/admin_/customers'
+      path: '/admin/customers'
+      fullPath: '/admin/customers'
+      preLoaderRoute: typeof AdminAdminCustomersRouteImport
       parentRoute: typeof AdminRoute
     }
-    '/_admin/admin_/products/$id': {
-      id: '/_admin/admin_/products/$id'
-      path: '/$id'
-      fullPath: '/admin/products/$id'
-      preLoaderRoute: typeof AdminAdminProductsIdRouteImport
-      parentRoute: typeof AdminAdminProductsRoute
+    '/_admin/admin_/orders': {
+      id: '/_admin/admin_/orders'
+      path: '/admin/orders'
+      fullPath: '/admin/orders'
+      preLoaderRoute: typeof AdminAdminOrdersRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/_admin/admin_/products': {
+      id: '/_admin/admin_/products'
+      path: '/admin/products'
+      fullPath: '/admin/products'
+      preLoaderRoute: typeof AdminAdminProductsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/_admin/admin_/reviews': {
+      id: '/_admin/admin_/reviews'
+      path: '/admin/reviews'
+      fullPath: '/admin/reviews'
+      preLoaderRoute: typeof AdminAdminReviewsRouteImport
+      parentRoute: typeof AdminRoute
     }
     '/_admin/admin_/orders/$id': {
       id: '/_admin/admin_/orders/$id'
@@ -397,6 +390,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/orders/$id'
       preLoaderRoute: typeof AdminAdminOrdersIdRouteImport
       parentRoute: typeof AdminAdminOrdersRoute
+    }
+    '/_admin/admin_/products/$id': {
+      id: '/_admin/admin_/products/$id'
+      path: '/$id'
+      fullPath: '/admin/products/$id'
+      preLoaderRoute: typeof AdminAdminProductsIdRouteImport
+      parentRoute: typeof AdminAdminProductsRoute
     }
   }
 }
